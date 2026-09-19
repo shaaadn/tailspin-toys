@@ -5,6 +5,7 @@ import type { Database } from './db';
 import {
     getAllGames,
     getAllGameIds,
+    getCatalogSummary,
     getGameById,
 } from './games';
 
@@ -62,5 +63,46 @@ describe('games data-access helpers', () => {
     it('returns null for a non-existent game', async () => {
         await seedGames(db, 2);
         expect(await getGameById(db, 99999)).toBeNull();
+    });
+
+    it('returns the total number of games and average star rating for rated games', async () => {
+        await seedGames(db, 3);
+        const summary = await getCatalogSummary(db);
+
+        expect(summary).toEqual({
+            totalGames: 3,
+            averageStarRating: 4.2,
+        });
+    });
+
+    it('returns a null average when no games have ratings', async () => {
+        const [category] = await db
+            .insert(categories)
+            .values({ name: 'Strategy', description: 'cat' })
+            .returning({ id: categories.id });
+        const [publisher] = await db
+            .insert(publishers)
+            .values({ name: 'Pub One', description: 'pub' })
+            .returning({ id: publishers.id });
+
+        await db.insert(games).values({
+            title: 'Untested Game',
+            description: 'No rating here',
+            starRating: null,
+            categoryId: category.id,
+            publisherId: publisher.id,
+        });
+
+        await expect(getCatalogSummary(db)).resolves.toEqual({
+            totalGames: 1,
+            averageStarRating: null,
+        });
+    });
+
+    it('returns zero games and a null average when the catalog is empty', async () => {
+        await expect(getCatalogSummary(db)).resolves.toEqual({
+            totalGames: 0,
+            averageStarRating: null,
+        });
     });
 });

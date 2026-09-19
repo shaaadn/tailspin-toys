@@ -25,3 +25,9 @@ export interface Game {
     category: Category | null;
     starRating: number | null;
 }
+
+/** Aggregated summary for the full catalog, computed in the data layer. */
+export interface CatalogSummary {
+    totalGames: number;
+    averageStarRating: number | null;
+}
